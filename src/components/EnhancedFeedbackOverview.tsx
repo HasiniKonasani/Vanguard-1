@@ -242,6 +242,7 @@ export const EnhancedFeedbackOverview: React.FC = () => {
                 </span>
                 <span className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <option value="teacher-rating">Teacher Rating</option>
                   <span className="font-semibold text-red-400">Needs Improvement: {stats.total > 0 ? Math.round((stats.needsImprovement / stats.total) * 100) : 0}%</span>
                 </span>
                 <span className="flex items-center gap-2">

@@ -23,19 +23,25 @@ export const UserManagement: React.FC = () => {
     fetchUsers()
   }, [])
 
-  const fetchUsers = () => {
-    setUsers(getAllUsers())
+  const fetchUsers = async () => {
+    const userList = await getAllUsers()
+    setUsers(userList)
   }
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     if (!newUser.username.trim() || !newUser.password.trim() || !newUser.full_name.trim()) {
       alert('Please fill in all fields')
       return
     }
 
     try {
-      createUser(newUser)
-      fetchUsers()
+      const createdUser = await createUser(newUser)
+      if (createdUser) {
+        await fetchUsers()
+      } else {
+        alert('Failed to create user')
+        return
+      }
       setNewUser({ username: '', password: '', full_name: '', role: 'teacher' })
       setShowAddUser(false)
     } catch (error) {
@@ -44,12 +50,17 @@ export const UserManagement: React.FC = () => {
     }
   }
 
-  const handleUpdateUser = () => {
+  const handleUpdateUser = async () => {
     if (!editingUser) return
 
     try {
-      updateUser(editingUser.id, editingUser)
-      fetchUsers()
+      const updatedUser = await updateUser(editingUser.id, editingUser)
+      if (updatedUser) {
+        await fetchUsers()
+      } else {
+        alert('Failed to update user')
+        return
+      }
       setEditingUser(null)
     } catch (error) {
       console.error('Error updating user:', error)
@@ -57,12 +68,16 @@ export const UserManagement: React.FC = () => {
     }
   }
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return
 
     try {
-      deleteUser(userId)
-      fetchUsers()
+      const success = await deleteUser(userId)
+      if (success) {
+        await fetchUsers()
+      } else {
+        alert('Failed to delete user')
+      }
     } catch (error) {
       console.error('Error deleting user:', error)
       alert('Failed to delete user')

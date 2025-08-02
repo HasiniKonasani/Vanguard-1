@@ -30,7 +30,7 @@ export const ProfessionalAuthGate: React.FC<ProfessionalAuthGateProps> = ({
     // Simulate loading time
     await new Promise(resolve => setTimeout(resolve, 800))
 
-    const user = authenticateUser(credentials.username, credentials.password)
+    const user = await authenticateUser(credentials.username, credentials.password)
     
     if (user) {
       setIsSuccess(true)

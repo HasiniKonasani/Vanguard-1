@@ -9,7 +9,10 @@ A modern, AI-powered feedback collection system for Vanguard candidates with Goo
 - **Flexible Authentication**: Support for both API Key and Service Account authentication
 - **Smart Text Parsing**: Automatically parse structured feedback from extracted text
 - **Real-time Analytics**: Visual feedback statistics and progress tracking
-- **Secure Database**: Supabase integration with row-level security
+- **Secure Database**: Supabase integration with row-level security and user management
+- **Multi-Role System**: Support for Admin, Teacher, and Dorm Parent roles
+- **Session Management**: Interactive checklist-based session tracking
+- **Document Management**: Upload and organize program materials
 
 ## AI Text Extraction
 

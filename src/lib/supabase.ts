@@ -8,6 +8,35 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type Database = {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string
+          username: string
+          password: string
+          full_name: string
+          role: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          username: string
+          password: string
+          full_name: string
+          role?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          username?: string
+          password?: string
+          full_name?: string
+          role?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
       feedback: {
         Row: {
           id: string
@@ -39,6 +68,67 @@ export type Database = {
           feedback_text?: string
           feedback_type?: string
           author?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      sessions: {
+        Row: {
+          id: string
+          name: string
+          description: string
+          checklist: any
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string
+          checklist?: any
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string
+          checklist?: any
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      documents: {
+        Row: {
+          id: string
+          module_id: string
+          title: string
+          description: string
+          file_url: string
+          file_type: string
+          uploaded_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          module_id: string
+          title: string
+          description?: string
+          file_url: string
+          file_type?: string
+          uploaded_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          module_id?: string
+          title?: string
+          description?: string
+          file_url?: string
+          file_type?: string
+          uploaded_by?: string
           created_at?: string
           updated_at?: string
         }

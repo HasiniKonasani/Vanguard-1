@@ -118,8 +118,9 @@ export const AllFeedbackPage: React.FC = () => {
     switch (sessionType) {
       case 'lecture': return 'Lecture'
       case 'social': return 'Social Hour'
-      case 'dexconnect': return 'DexConnect Meetup'
-      case 'retraining': return 'Retraining Program'
+      case 'dmrp': return 'DMRP Session'
+      case 'teacher': return 'Teacher Rating'
+      case 'dorm_parent': return 'Dorm Parent Rating'
       default: return sessionType
     }
   }

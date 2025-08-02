@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Star, MessageSquare, Plus, Search } from 'lucide-react'
+import { User, Star, MessageSquare, Plus, Search, ArrowLeft } from 'lucide-react'
 import { candidatesWithClasses } from '../data/classes'
-import { User as UserType, FeedbackRating } from '../types/auth'
+import { User as UserType } from '../types/auth'
+import { supabase } from '../lib/supabase'
 import { VanguardScene } from './3D/VanguardScene'
+
+interface TeacherFeedback {
+  id: string
+  candidate_id: string
+  reviewer_id: string
+  reviewer_name: string
+  reviewer_type: 'teacher' | 'dorm_parent'
+  rating: number
+  comments: string
+  created_at: string
+  updated_at: string
+}
 
 interface TeacherFeedbackSystemProps {
   currentUser: UserType
@@ -11,45 +24,95 @@ interface TeacherFeedbackSystemProps {
 
 export const TeacherFeedbackSystem: React.FC<TeacherFeedbackSystemProps> = ({ currentUser }) => {
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null)
-  const [feedbacks, setFeedbacks] = useState<FeedbackRating[]>([])
+  const [feedbacks, setFeedbacks] = useState<TeacherFeedback[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [newFeedback, setNewFeedback] = useState({
     rating: 5,
     comments: ''
   })
 
+  useEffect(() => {
+    fetchFeedbacks()
+  }, [currentUser.id])
+
+  const fetchFeedbacks = async () => {
+    try {
+      // For now, we'll store teacher feedback in the same feedback table with a special format
+      // In a real implementation, you might want a separate table for teacher ratings
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('*')
+        .eq('author', currentUser.full_name)
+        .eq('module_id', 'teacher-rating')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      // Convert to teacher feedback format
+      const teacherFeedbacks: TeacherFeedback[] = (data || []).map(feedback => ({
+        id: feedback.id,
+        candidate_id: feedback.candidate_id,
+        reviewer_id: currentUser.id,
+        reviewer_name: currentUser.full_name,
+        reviewer_type: currentUser.role as 'teacher' | 'dorm_parent',
+        rating: parseInt(feedback.feedback_type) || 5, // Store rating in feedback_type field
+        comments: feedback.feedback_text,
+        created_at: feedback.created_at,
+        updated_at: feedback.updated_at
+      }))
+
+      setFeedbacks(teacherFeedbacks)
+    } catch (error) {
+      console.error('Error fetching teacher feedbacks:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredCandidates = candidatesWithClasses.filter(candidate =>
     candidate.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (!selectedCandidate) return
 
-    const feedback: FeedbackRating = {
-      id: `feedback-${Date.now()}`,
-      candidate_id: selectedCandidate,
-      reviewer_id: currentUser.id,
-      reviewer_type: currentUser.role as 'teacher' | 'dorm_parent',
-      rating: newFeedback.rating,
-      comments: newFeedback.comments,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .insert([{
+          candidate_id: selectedCandidate,
+          module_id: 'teacher-rating',
+          session_type: currentUser.role,
+          feedback_text: newFeedback.comments,
+          feedback_type: newFeedback.rating.toString(), // Store rating as string
+          author: currentUser.full_name
+        }])
 
-    setFeedbacks(prev => [feedback, ...prev])
-    setNewFeedback({ rating: 5, comments: '' })
-    setShowFeedbackModal(false)
+      if (error) throw error
+
+      await fetchFeedbacks()
+      setNewFeedback({ rating: 5, comments: '' })
+      setShowFeedbackModal(false)
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      alert('Failed to submit feedback')
+    }
   }
 
   const getCandidateFeedbacks = (candidateId: string) => {
-    return feedbacks.filter(f => f.candidate_id === candidateId && f.reviewer_id === currentUser.id)
+    return feedbacks.filter(f => f.candidate_id === candidateId)
   }
 
   const getAverageRating = (candidateId: string) => {
     const candidateFeedbacks = getCandidateFeedbacks(candidateId)
     if (candidateFeedbacks.length === 0) return 0
     return candidateFeedbacks.reduce((sum, f) => sum + f.rating, 0) / candidateFeedbacks.length
+  }
+
+  const handleLogout = () => {
+    window.location.reload() // Simple logout by reloading the page
   }
 
   const formatDate = (dateString: string) => {
@@ -109,6 +172,16 @@ export const TeacherFeedbackSystem: React.FC<TeacherFeedbackSystemProps> = ({ cu
         </motion.div>
 
         <div className="max-w-7xl mx-auto px-6 py-12">
+
+              <motion.button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600/80 text-white rounded-xl hover:bg-red-500/80 transition-colors border border-red-500/30"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Logout
+              </motion.button>
           {/* Search */}
           <motion.div 
             className="bg-black/30 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-blue-500/20 mb-8"
@@ -130,19 +203,34 @@ export const TeacherFeedbackSystem: React.FC<TeacherFeedbackSystemProps> = ({ cu
 
           {/* Candidates Grid */}
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="bg-black/30 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-blue-500/20"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            {filteredCandidates.map((candidate, index) => {
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+              <User className="w-6 h-6 text-blue-400" />
+              Candidates ({filteredCandidates.length})
+            </h2>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <motion.div 
+                  className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCandidates.map((candidate, index) => {
               const candidateFeedbacks = getCandidateFeedbacks(candidate.id)
               const averageRating = getAverageRating(candidate.id)
               
               return (
                 <motion.div
                   key={candidate.id}
-                  className="bg-black/30 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-gray-600/30 hover:border-blue-500/30 transition-all duration-300"
+                  className="bg-blue-500/10 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.05 }}
@@ -209,7 +297,9 @@ export const TeacherFeedbackSystem: React.FC<TeacherFeedbackSystemProps> = ({ cu
                   )}
                 </motion.div>
               )
-            })}
+                })}
+              </div>
+            )}
           </motion.div>
         </div>
 
